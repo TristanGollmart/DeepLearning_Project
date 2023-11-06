@@ -1,0 +1,7 @@
+.DS_Store
+.idea
+.code
+*.pyc
+__pycache__
+checkpoints
+data
