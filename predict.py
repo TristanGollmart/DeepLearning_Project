@@ -47,6 +47,7 @@ def test(model, loader, loss_fn, args):
 
 
 def predict_cifar10(checkpoint_path, config_path, device='cpu'):
+    # get test data
     mean = MEAN_DICT['cifar10']
     std = STD_DICT['cifar10']
     transform = transforms.Compose(
@@ -58,23 +59,15 @@ def predict_cifar10(checkpoint_path, config_path, device='cpu'):
             torchvision.transforms.Normalize(mean, std),
         ]
     )
-
     batch_size = 4
-
-    testset = torchvision.datasets.CIFAR10(root='./data', train=False,
-                                           download=True, transform=transform)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
-                                             shuffle=False, num_workers=2)
-
-    classes = ('plane', 'car', 'bird', 'cat',
-               'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
-
-    ############ load model
-    # Path to pre-trained checkpoints and the corresponding config file (e.g. the checkpoints downloaded from given link)
-
-    # model, architecture, crop_resolution, norm = model_from_config(checkpoint_path)
+    test_set = torchvision.datasets.CIFAR10(root='./data', train=False,
+                                            download=True, transform=transform)
+    test_loader = torch.utils.data.DataLoader(test_set, batch_size=batch_size,
+                                              shuffle=False, num_workers=2)
+    # load model from checkpoint
     with open(config_path, 'r') as f:
         config = json.load(f)
+    config['num_classes'] = 10
 
     model = get_architecture(**config)
     print('Loading checkpoint', checkpoint_path)
@@ -84,28 +77,14 @@ def predict_cifar10(checkpoint_path, config_path, device='cpu'):
         for k, v in torch.load(checkpoint_path, map_location=torch.device(device)).items()
     }
     model.load_state_dict(params, strict=False)
-    ##########
     loss_fn = CrossEntropyLoss(label_smoothing=config['smooth'])
-    results = test(model, testloader, loss_fn, {'dataset': 'cifar10'})
+    # run test
+    results = test(model, test_loader, loss_fn, {'dataset': 'cifar10'})
     print(results)
-
-    # correct = 0
-    # total = 0
-    # # since we're not training, we don't need to calculate the gradients for our outputs
-    # with torch.no_grad():
-    #     for data in testloader:
-    #         images, labels = data
-    #         # calculate outputs by running images through the network
-    #         outputs = model(images)
-    #         # the class with the highest energy is what we choose as prediction
-    #         _, predicted = torch.max(outputs.data, 1)
-    #         total += labels.size(0)
-    #         correct += (predicted == labels).sum().item()
-    #
-    # print(f'Accuracy of the network on the 10000 test images: {100 * correct // total} %')
 
 
 if __name__ == '__main__':
-    MODEL_CHECKPOINT_PATH = '/Users/roncaglionidaniele/Documents/CAS/Deep_Learning/Project/checkpoints/BottleneckMLP_B_6-Wi_512/epoch_900'
-    MODEL_CONFIG_PATH = '/Users/roncaglionidaniele/Documents/CAS/Deep_Learning/Project/checkpoints/BottleneckMLP_B_6-Wi_512/config.txt'
+    # MODEL_CHECKPOINT_PATH = '/Users/roncaglionidaniele/Documents/CAS/Deep_Learning/Project/checkpoints/BottleneckMLP_B_12-Wi_1024/epoch_900'
+    MODEL_CHECKPOINT_PATH = '/Users/roncaglionidaniele/Documents/CAS/Deep_Learning/Project/checkpoints/BottleneckMLP_B_12-Wi_1024/cifar10_epoch_20'
+    MODEL_CONFIG_PATH = '/Users/roncaglionidaniele/Documents/CAS/Deep_Learning/Project/checkpoints/BottleneckMLP_B_12-Wi_1024/config.txt'
     predict_cifar10(MODEL_CHECKPOINT_PATH, MODEL_CONFIG_PATH)
